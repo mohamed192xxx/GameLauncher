@@ -1,0 +1,25 @@
+name: Supabase Keepalive
+
+# Daily ping so the free-tier project never goes to sleep (pause after 7 days idle).
+# Manual run also available from the Actions tab.
+on:
+  schedule:
+    - cron: "0 6 * * *" # every day at 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping licenses table
+        run: |
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Accept: application/json" \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/licenses?select=key&limit=1")
+          echo "Supabase status: $CODE"
+          if [ "$CODE" != "200" ]; then
+            echo "::warning::Keepalive ping returned $CODE"
+            exit 1
+          fi
